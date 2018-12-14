@@ -1,0 +1,484 @@
+---
+title: "Prelim_predeiction_SP"
+author: "Zhonghan Pei"
+date: "11/23/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## Load data
+house_train <- read.csv(file="HTrainLast.csv",stringsAsFactors = F)
+afford <- house_train$affordabilitty
+sum(is.na(afford))
+
+## Delete NA for missing affordability
+house_train[which(is.na(afford)==1),]
+
+new_house_train <- house_train[-which(is.na(afford==1)),-1]
+
+## Transform predictor into 0 1 variable
+new_house_train$affordabilitty <- as.numeric(as.factor(new_house_train$affordabilitty))
+
+new_house_train$affordabilitty[which(new_house_train$affordabilitty == 2)] <- 0
+
+# mfull <- lm(affordabilitty ~ MSSubClass+LotFrontage+LotArea+LotShape+LandContour+OverallCond+OverallQual+YearBuilt+YearRemodAdd+MasVnrArea+BsmtFinSF1+BsmtUnfSF+TotalBsmtSF+GrLivArea+GarageYrBlt+GarageType+GarageCars+GarageArea+WoodDeckSF+OpenPorchSF+MoSold+YrSold+SaleType+SaleCondition, data=new_house_train)
+
+
+cat_var <- names(new_house_train)[which(sapply(new_house_train, is.character))]
+
+numeric_var <- names(new_house_train)[which(sapply(new_house_train, is.numeric))]
+
+new_house_train_cat<-new_house_train[cat_var]
+new_house_train_num<-new_house_train[numeric_var]
+
+correlations <- cor(na.omit(new_house_train_num))
+library(corrplot)
+row_indic <- apply(correlations, 1, function(x) sum(x > 0.3 | x < -0.3) > 1)
+correlations<- correlations[row_indic ,row_indic ]
+corrplot(correlations, method="square")
+
+results <- correlations["affordabilitty",]
+results
+
+tail(sort(abs(results)), 6)
+```
+
+```{r}
+house <- new_house_train
+
+## Deal with missing data
+house$MasVnrArea[which(is.na(house$MasVnrArea))] <- mean(house$MasVnrArea,na.rm=T)
+
+house$Alley1 <- as.character(house$Alley)
+house$Alley1[which(is.na(house$Alley))] <- "None"
+house$Alley <- as.factor(house$Alley1)
+house <- subset(house,select = -Alley1)
+
+house$MasVnrType1 <- as.character(house$MasVnrType)
+house$MasVnrType1[which(is.na(house$MasVnrType))] <- "None"
+house$MasVnrType <- as.factor(house$MasVnrType1)
+house <- subset(house,select = -MasVnrType1)
+
+house$LotFrontage[which(is.na(house$LotFrontage))] <- median(house$LotFrontage,na.rm = T)
+
+house$FireplaceQu1 <- as.character(house$FireplaceQu)
+house$FireplaceQu1[which(is.na(house$FireplaceQu))] <- "None"
+house$FireplaceQu <- as.factor(house$FireplaceQu1)
+house <- subset(house,select = -FireplaceQu1)
+
+house$PoolQC1 <- as.character(house$PoolQC)
+house$PoolQC1[which(is.na(house$PoolQC))] <- "None"
+house$PoolQC <- as.factor(house$PoolQC1)
+house <- subset(house,select = -PoolQC1)
+
+house$Fence1 <- as.character(house$Fence)
+house$Fence1[which(is.na(house$Fence))] <- "None"
+house$Fence <- as.factor(house$Fence1)
+house <- subset(house,select = -Fence1)
+
+house$MiscFeature1 <- as.character(house$MiscFeature)
+house$MiscFeature1[which(is.na(house$MiscFeature))] <- "None"
+house$MiscFeature <- as.factor(house$MiscFeature1)
+house <- subset(house,select = -MiscFeature1)
+
+house$GarageType1 <- as.character(house$GarageType)
+house$GarageType1[which(is.na(house$GarageType))] <- "None"
+house$GarageType <- as.factor(house$GarageType1)
+house <- subset(house,select = -GarageType1)
+
+house$GarageYrBlt[which(is.na(house$GarageYrBlt))] <- 0
+
+house$GarageFinish1 <- as.character(house$GarageFinish)
+house$GarageFinish1[which(is.na(house$GarageFinish))] <- "None"
+house$GarageFinish <- as.factor(house$GarageFinish1)
+house <- subset(house,select = -GarageFinish1)
+
+house$GarageQual1 <- as.character(house$GarageQual)
+house$GarageQual1[which(is.na(house$GarageQual))] <- "None"
+house$GarageQual <- as.factor(house$GarageQual1)
+house <- subset(house,select = -GarageQual1)
+
+house$GarageCond1 <- as.character(house$GarageCond)
+house$GarageCond1[which(is.na(house$GarageCond))] <- "None"
+house$GarageCond <- as.factor(house$GarageCond1)
+house <- subset(house,select = -GarageCond1)
+
+house$BsmtQual1 <- as.character(house$BsmtQual)
+house$BsmtQual1[which(is.na(house$BsmtQual))] <- "None"
+house$BsmtQual <- as.factor(house$BsmtQual1)
+house <- subset(house,select = -BsmtQual1)
+
+house$BsmtCond1 <- as.character(house$BsmtCond)
+house$BsmtCond1[which(is.na(house$BsmtCond))] <- "None"
+house$BsmtCond <- as.factor(house$BsmtCond1)
+house <- subset(house,select = -BsmtCond1)
+
+house$BsmtExposure1 <- as.character(house$BsmtExposure)
+house$BsmtExposure1[which(is.na(house$BsmtExposure))] <- "None"
+house$BsmtExposure <- as.factor(house$BsmtExposure1)
+house <- subset(house,select = -BsmtExposure1)
+
+house$BsmtFinType11 <- as.character(house$BsmtFinType1)
+house$BsmtFinType11[which(is.na(house$BsmtFinType1))] <- "None"
+house$BsmtFinType1 <- as.factor(house$BsmtFinType11)
+house <- subset(house,select = -BsmtFinType11)
+
+house$BsmtFinType21 <- as.character(house$BsmtFinType2)
+house$BsmtFinType21[which(is.na(house$BsmtFinType2))] <- "None"
+house$BsmtFinType2 <- as.factor(house$BsmtFinType21)
+house <- subset(house,select = -BsmtFinType21)
+
+house$Electrical1 <- as.character(house$Electrical)
+house$Electrical1[which(is.na(house$Electrical))] <- "None"
+house$Electrical <- as.factor(house$Electrical1)
+house <- subset(house,select = -Electrical1)
+
+house$MSZoning<- factor(house$MSZoning)
+house$Street <- factor(house$Street)
+house$LotShape <-factor(house$LotShape )
+house$LandContour<-factor(house$LandContour)
+house$Utilities<-factor(house$Utilities)
+house$LotConfig<-factor(house$LotConfig)
+house$LandSlope<-factor(house$LandSlope)
+house$Neighborhood<-factor(house$Neighborhood)
+house$Condition1<-factor(house$Condition1)
+house$Condition2<-factor(house$Condition2)
+house$BldgType<-factor(house$BldgType)
+house$HouseStyle<-factor(house$HouseStyle)
+house$RoofStyle<-factor(house$RoofStyle)
+house$RoofMatl<-factor(house$RoofMatl)
+house$Exterior1st<-factor(house$Exterior1st)
+house$Exterior2nd<-factor(house$Exterior2nd)
+house$ExterQual<-factor(house$ExterQual)
+house$ExterCond<-factor(house$ExterCond)
+house$Foundation<-factor(house$Foundation)
+house$Heating<-factor(house$Heating)
+house$HeatingQC<-factor(house$HeatingQC)
+house$CentralAir<-factor(house$CentralAir)
+house$KitchenQual<-factor(house$KitchenQual)
+house$Functional<-factor(house$Functional)
+house$PavedDrive<-factor(house$PavedDrive)
+house$SaleType<-factor(house$SaleType)
+house$SaleCondition<-factor(house$SaleCondition)
+```
+
+```{r}
+house_cat<-house[c(cat_var,"affordabilitty")]
+house_cat$affordabilitty <- as.factor(house$affordabilitty)
+house_num<-house[numeric_var]
+```
+
+```{r}
+column_class <- lapply(house_cat,class)
+column_class <- column_class[column_class != "factor"]
+factor_levels <- lapply(house_cat, nlevels)
+factor_levels <- factor_levels[factor_levels > 1]
+house_cat <- house_cat[which(names(house_cat) %in% c(names(factor_levels), names(column_class)))]
+
+mfull<-glm(affordabilitty~.,data=house_cat, family = "binomial")
+
+summary(mfull)
+```
+Categorical Variables Choosen
+
+LotConfig,Condition1,BldgType,HouseStyle,RoofStyle,Foundation,GarageType,KitchenQual,Heating
+
+Numerical Variables Choosen
+
+GrLivArea, GarageCars, YearBuilt, FullBath, OverallQual
+
+```{r}
+model_feature <- glm(affordabilitty~LotConfig+Condition1+BldgType+HouseStyle+RoofStyle+Foundation+GarageType+KitchenQual+Heating+GrLivArea+GarageCars+YearBuilt+FullBath+OverallQual,data = house, family = "binomial")
+summary(model_feature)
+## Thus, we can drop LotConfig, Condition1, RoofStyle, Heating, Now there are in total 10 predictors
+model_feature1 <- glm(affordabilitty~BldgType+HouseStyle+Foundation+GarageType+KitchenQual+GrLivArea+GarageCars+YearBuilt+FullBath+OverallQual,data = house, family = "binomial")
+
+
+```
+
+
+```{r}
+library(MASS)
+## LDA model
+fit <- lda(affordabilitty~BldgType+HouseStyle+Foundation+KitchenQual+GrLivArea+GarageCars+YearBuilt+FullBath+OverallQual,data = house)
+predictions <- predict(fit, house[,c("BldgType","HouseStyle","Foundation","KitchenQual","GrLivArea","GarageCars","YearBuilt","FullBath","OverallQual")])$class
+
+table(predictions, house$affordabilitty)
+```
+
+```{r}
+## Predict our data
+prob.lr1 <- predict(model_feature1, house, type="response") 
+predUp1 <- prob.lr1>0.5
+table(predUp1, factor(house$affordabilitty))
+
+## Using knn
+house_copy = house[complete.cases(house),]
+
+house_copy[numeric_var[-37]] = sapply(house_copy[numeric_var[-37]],scale)
+
+## Before Feature selection
+house_copy <- sapply(house_copy, as.numeric)
+
+train_sample = sample(0.4*nrow(house_copy))
+train_hs <- house_copy[train_sample,]
+
+test_hs <- house_copy[-train_sample,]
+
+train_y <- train_hs[,80]
+test_y <- test_hs[,80]
+
+library(class)
+output <- knn(train_hs, test_hs, train_y, k = 1)
+
+table(output,test_y)
+
+## After Feature Selection
+house_copy = house[complete.cases(house),]
+
+house_copy[numeric_var[-37]] = sapply(house_copy[numeric_var[-37]],scale)
+
+house_copy <- house_copy[,c("LotConfig","Condition1","BldgType","HouseStyle","RoofStyle","Foundation","GarageType","KitchenQual","Heating","GrLivArea","GarageCars","YearBuilt","FullBath","OverallQual","affordabilitty")]
+
+house_copy <- sapply(house_copy, as.numeric)
+
+train_sample = sample(0.4*nrow(house_copy))
+train_hs <- house_copy[train_sample,]
+
+test_hs <- house_copy[-train_sample,]
+
+train_y <- train_hs[,15]
+test_y <- test_hs[,15]
+
+library(class)
+output <- knn(train_hs, test_hs, train_y, k = 1)
+
+table(output,test_y)
+```
+
+Using Nerual Network
+
+```{r}
+
+
+house_train<-house_copy[train_sample,]
+house_test <-house_copy[-train_sample,]
+
+ANN <- neuralnet(affordabilitty~LotConfig+Condition1+BldgType+HouseStyle+RoofStyle+Foundation+GarageType+KitchenQual+Heating+GrLivArea+GarageCars+YearBuilt+FullBath+OverallQual,data = house_train, hidden = 5)
+
+score_y <- ifelse(compute(ANN,house_test[, c("LotConfig","Condition1","BldgType","HouseStyle","RoofStyle","Foundation","GarageType","KitchenQual","Heating","GrLivArea","GarageCars","YearBuilt","FullBath","OverallQual")])$net.result> 0.5, 1, 0)
+
+table(score_y, test_y)
+```
+
+
+```{r}
+testing_data <- read.csv("HTestLastNoY.csv")
+
+testing_data = testing_data[,-1]
+
+## Deal with missing data
+testing_data$MasVnrArea[which(is.na(testing_data$MasVnrArea))] <- mean(testing_data$MasVnrArea,na.rm=T)
+
+testing_data$Alley1 <- as.character(testing_data$Alley)
+testing_data$Alley1[which(is.na(testing_data$Alley))] <- "None"
+testing_data$Alley <- as.factor(testing_data$Alley1)
+testing_data <- subset(testing_data,select = -Alley1)
+
+testing_data$MasVnrType1 <- as.character(testing_data$MasVnrType)
+testing_data$MasVnrType1[which(is.na(testing_data$MasVnrType))] <- "None"
+testing_data$MasVnrType <- as.factor(testing_data$MasVnrType1)
+testing_data <- subset(testing_data,select = -MasVnrType1)
+
+testing_data$LotFrontage[which(is.na(testing_data$LotFrontage))] <- median(testing_data$LotFrontage,na.rm = T)
+
+testing_data$FireplaceQu1 <- as.character(testing_data$FireplaceQu)
+testing_data$FireplaceQu1[which(is.na(testing_data$FireplaceQu))] <- "None"
+testing_data$FireplaceQu <- as.factor(testing_data$FireplaceQu1)
+testing_data <- subset(testing_data,select = -FireplaceQu1)
+
+testing_data$PoolQC1 <- as.character(testing_data$PoolQC)
+testing_data$PoolQC1[which(is.na(testing_data$PoolQC))] <- "None"
+testing_data$PoolQC <- as.factor(testing_data$PoolQC1)
+testing_data <- subset(testing_data,select = -PoolQC1)
+
+testing_data$Fence1 <- as.character(testing_data$Fence)
+testing_data$Fence1[which(is.na(testing_data$Fence))] <- "None"
+testing_data$Fence <- as.factor(testing_data$Fence1)
+testing_data <- subset(testing_data,select = -Fence1)
+
+testing_data$MiscFeature1 <- as.character(testing_data$MiscFeature)
+testing_data$MiscFeature1[which(is.na(testing_data$MiscFeature))] <- "None"
+testing_data$MiscFeature <- as.factor(testing_data$MiscFeature1)
+testing_data <- subset(testing_data,select = -MiscFeature1)
+
+testing_data$GarageType1 <- as.character(testing_data$GarageType)
+testing_data$GarageType1[which(is.na(testing_data$GarageType))] <- "None"
+testing_data$GarageType <- as.factor(testing_data$GarageType1)
+testing_data <- subset(testing_data,select = -GarageType1)
+
+testing_data$GarageYrBlt[which(is.na(testing_data$GarageYrBlt))] <- 0
+
+testing_data$GarageFinish1 <- as.character(testing_data$GarageFinish)
+testing_data$GarageFinish1[which(is.na(testing_data$GarageFinish))] <- "None"
+testing_data$GarageFinish <- as.factor(testing_data$GarageFinish1)
+testing_data <- subset(testing_data,select = -GarageFinish1)
+
+testing_data$GarageQual1 <- as.character(testing_data$GarageQual)
+testing_data$GarageQual1[which(is.na(testing_data$GarageQual))] <- "None"
+testing_data$GarageQual <- as.factor(testing_data$GarageQual1)
+testing_data <- subset(testing_data,select = -GarageQual1)
+
+testing_data$GarageCond1 <- as.character(testing_data$GarageCond)
+testing_data$GarageCond1[which(is.na(testing_data$GarageCond))] <- "None"
+testing_data$GarageCond <- as.factor(testing_data$GarageCond1)
+testing_data <- subset(testing_data,select = -GarageCond1)
+
+testing_data$BsmtQual1 <- as.character(testing_data$BsmtQual)
+testing_data$BsmtQual1[which(is.na(testing_data$BsmtQual))] <- "None"
+testing_data$BsmtQual <- as.factor(testing_data$BsmtQual1)
+testing_data <- subset(testing_data,select = -BsmtQual1)
+
+testing_data$BsmtCond1 <- as.character(testing_data$BsmtCond)
+testing_data$BsmtCond1[which(is.na(testing_data$BsmtCond))] <- "None"
+testing_data$BsmtCond <- as.factor(testing_data$BsmtCond1)
+testing_data <- subset(testing_data,select = -BsmtCond1)
+
+testing_data$BsmtExposure1 <- as.character(testing_data$BsmtExposure)
+testing_data$BsmtExposure1[which(is.na(testing_data$BsmtExposure))] <- "None"
+testing_data$BsmtExposure <- as.factor(testing_data$BsmtExposure1)
+testing_data <- subset(testing_data,select = -BsmtExposure1)
+
+testing_data$BsmtFinType11 <- as.character(testing_data$BsmtFinType1)
+testing_data$BsmtFinType11[which(is.na(testing_data$BsmtFinType1))] <- "None"
+testing_data$BsmtFinType1 <- as.factor(testing_data$BsmtFinType11)
+testing_data <- subset(testing_data,select = -BsmtFinType11)
+
+testing_data$BsmtFinType21 <- as.character(testing_data$BsmtFinType2)
+testing_data$BsmtFinType21[which(is.na(testing_data$BsmtFinType2))] <- "None"
+testing_data$BsmtFinType2 <- as.factor(testing_data$BsmtFinType21)
+testing_data <- subset(testing_data,select = -BsmtFinType21)
+
+testing_data$Electrical1 <- as.character(testing_data$Electrical)
+testing_data$Electrical1[which(is.na(testing_data$Electrical))] <- "None"
+testing_data$Electrical <- as.factor(testing_data$Electrical1)
+testing_data <- subset(testing_data,select = -Electrical1)
+
+testing_data$MSZoning<- factor(testing_data$MSZoning)
+testing_data$Street <- factor(testing_data$Street)
+testing_data$LotShape <-factor(testing_data$LotShape )
+testing_data$LandContour<-factor(testing_data$LandContour)
+testing_data$Utilities<-factor(testing_data$Utilities)
+testing_data$LotConfig<-factor(testing_data$LotConfig)
+testing_data$LandSlope<-factor(testing_data$LandSlope)
+testing_data$Neighborhood<-factor(testing_data$Neighborhood)
+testing_data$Condition1<-factor(testing_data$Condition1)
+testing_data$Condition2<-factor(testing_data$Condition2)
+testing_data$BldgType<-factor(testing_data$BldgType)
+testing_data$HouseStyle<-factor(testing_data$HouseStyle)
+testing_data$RoofStyle<-factor(testing_data$RoofStyle)
+testing_data$RoofMatl<-factor(testing_data$RoofMatl)
+testing_data$Exterior1st<-factor(testing_data$Exterior1st)
+testing_data$Exterior2nd<-factor(testing_data$Exterior2nd)
+testing_data$ExterQual<-factor(testing_data$ExterQual)
+testing_data$ExterCond<-factor(testing_data$ExterCond)
+testing_data$Foundation<-factor(testing_data$Foundation)
+testing_data$Heating<-factor(testing_data$Heating)
+testing_data$HeatingQC<-factor(testing_data$HeatingQC)
+testing_data$CentralAir<-factor(testing_data$CentralAir)
+testing_data$KitchenQual<-factor(testing_data$KitchenQual)
+testing_data$Functional<-factor(testing_data$Functional)
+testing_data$PavedDrive<-factor(testing_data$PavedDrive)
+testing_data$SaleType<-factor(testing_data$SaleType)
+testing_data$SaleCondition<-factor(testing_data$SaleCondition)
+
+testing_data[numeric_var[-37]] = sapply(testing_data[numeric_var[-37]],scale)
+
+testing_copy <- testing_data[,c("BldgType","HouseStyle","Foundation","KitchenQual","GrLivArea","GarageCars","YearBuilt","FullBath","OverallQual")]
+
+library(bnstruct)
+testing_copy <- sapply(testing_copy, as.numeric)
+testing_copy <- knn.impute(testing_copy,k=1)
+
+library(class)
+output2 <- class:::knn(house_copy[,1:9], testing_copy, house_copy[,10], k =1)
+
+table(output2)
+```
+
+```{r}
+
+pred_prel <- data.frame(1:1500, output2)
+colnames(pred_prel) <- c("Ob","affordabilitty")
+pred_prel$affordabilitty <- ifelse(pred_prel$affordabilitty==1,"Affordable","Unaffordable")
+
+write.csv(pred_prel, file="prelim_prediction.csv")
+```
+
+```{r}
+library(bnstruct)
+
+```
+
+```{r}
+library(rgdal)
+library(raster)
+library(caret)
+set.seed(123)
+
+set.seed(123)
+mod.rf <- train(as.factor(affordabilitty) ~ LotConfig+Condition1+BldgType+HouseStyle+RoofStyle+Foundation+GarageType+KitchenQual+Heating+GrLivArea+GarageCars+YearBuilt+FullBath+OverallQual, method = "rf", data = house_train)
+pred.rf <- predict(mod.rf, house_test)
+
+set.seed(123)
+mod.svm <- train(as.factor(affordabilitty) ~ LotConfig+Condition1+BldgType+HouseStyle+RoofStyle+Foundation+GarageType+KitchenQual+Heating+GrLivArea+GarageCars+YearBuilt+FullBath+OverallQual, method = "svmRadial", data = house_train)
+pred.svm <- predict(mod.svm, house_test)
+
+```
+```{r}
+confusionMatrix(pred.rf, as.factor(test_y))$overall[1]
+
+confusionMatrix(pred.svm,as.factor(test_y))$overall[1]
+
+results <- resamples(list(mod1 = mod.rf, mod2 = mod.svm)) 
+modelCor(results) 
+```
+
+```{r}
+predDF <- data.frame(pred.rf, pred.svm, class = as.factor(test_y))
+
+predDF_bc <- undersample_ds(predDF,"class",600)
+
+set.seed(123)
+combModFit.gbm <- train(as.factor(class) ~ ., method = "gbm", data = predDF_bc, distribution = "multinomial")
+combPred.gbm <- predict(combModFit.gbm, )
+
+
+```
+```{r}
+pred1V <- predict(mod.rf, house_test)
+ pred2V <- predict(mod.svm, house_test)
+ predVDF <- data.frame(pred.rf = pred1V, pred.svm = pred2V)
+ 
+ combPredV <- predict(combModFit.gbm, predVDF)
+ 
+  confusionMatrix(combPredV, as.factor(test_y))$overall[1]
+```
+
+```{r}
+undersample_ds <- function(x, classCol, nsamples_class){
+  for (i in 1:length(unique(x[, classCol]))){
+    class.i <- unique(x[, classCol])[i]
+    if((sum(x[, classCol] == class.i) - nsamples_class) != 0){
+      x <- x[-sample(which(x[, classCol] == class.i), 
+                     sum(x[, classCol] == class.i) - nsamples_class), ]
+      }
+  }
+  return(x)
+}
+```
+
